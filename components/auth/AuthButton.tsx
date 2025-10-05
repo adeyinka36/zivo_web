@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import LoadingSpinner from '../ui/LoadingSpinner';
 
 interface AuthButtonProps {
   title: string;
@@ -26,9 +27,7 @@ export default function AuthButton({
       }`}
     >
       {isLoading ? (
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
-        </div>
+        <LoadingSpinner size="sm" />
       ) : (
         title
       )}

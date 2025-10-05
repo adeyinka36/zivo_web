@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import LoadingSpinner from '../ui/LoadingSpinner';
 import Image from 'next/image';
 
 interface AuthCardProps {

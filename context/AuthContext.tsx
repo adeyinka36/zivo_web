@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { AuthService } from '../services/auth/AuthService';
 import { AuthState, User, AuthError, LoginCredentials, RegisterData, ResetPasswordData, NewPasswordData } from '../types/auth';
 
@@ -28,6 +29,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const router = useRouter();
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     token: null,
@@ -40,19 +42,92 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     checkAuthStatus();
-  }, []);
+    
+    // Listen for 401 unauthorized events
+    const handleUnauthorized = () => {
+      setAuthState({
+        user: null,
+        token: null,
+        isLoading: false,
+        isAuthenticated: false,
+        error: null,
+      });
+      
+      // Show error toast
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('toast:show', {
+          detail: {
+            message: 'Session expired. Please log in again.',
+            type: 'error',
+            duration: 3000
+          }
+        }));
+      }
+      
+      // Redirect to login using Next.js router
+      router.push('/login');
+    };
 
-  const checkAuthStatus = (): void => {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth:unauthorized', handleUnauthorized);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('auth:unauthorized', handleUnauthorized);
+      }
+    };
+  }, [router]);
+
+  const checkAuthStatus = async (): Promise<void> => {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('userToken');
       
       if (token) {
-        setAuthState(prev => ({
-          ...prev,
-          token,
-          isAuthenticated: true,
-          isLoading: false,
-        }));
+        try {
+          const response = await authService.getCurrentUser();
+          setAuthState({
+            user: response,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+          });
+        } catch (error) {
+          // Try to use stored user data as fallback
+          const storedUserData = localStorage.getItem('userData');
+          if (storedUserData) {
+            try {
+              const userData = JSON.parse(storedUserData);
+              setAuthState({
+                user: userData,
+                token,
+                isAuthenticated: true,
+                isLoading: false,
+                error: null,
+              });
+            } catch (parseError) {
+              localStorage.removeItem('userToken');
+              localStorage.removeItem('userData');
+              setAuthState({
+                user: null,
+                token: null,
+                isAuthenticated: false,
+                isLoading: false,
+                error: null,
+              });
+            }
+          } else {
+            localStorage.removeItem('userToken');
+            setAuthState({
+              user: null,
+              token: null,
+              isAuthenticated: false,
+              isLoading: false,
+              error: null,
+            });
+          }
+        }
       } else {
         setAuthState(prev => ({
           ...prev,

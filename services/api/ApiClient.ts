@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
-const BASE_URL = 'http://192.168.1.69:80/api/v1';
+const BASE_URL = 'http://192.168.1.141:80/api/v1';
 
 export class ApiClient {
   private client: AxiosInstance;
@@ -42,6 +42,8 @@ export class ApiClient {
         if (error.response?.status === 401) {
           if (typeof window !== 'undefined') {
             localStorage.removeItem('userToken');
+            // Dispatch custom event for 401 unauthorized
+            window.dispatchEvent(new CustomEvent('auth:unauthorized'));
           }
         }
         return Promise.reject(error);

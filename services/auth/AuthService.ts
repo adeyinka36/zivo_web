@@ -81,6 +81,15 @@ export class AuthService {
     }
   }
 
+  async getCurrentUser(): Promise<any> {
+    try {
+      const response = await this.apiClient.get('/user');
+      return response.data;
+    } catch (error: any) {
+      throw this.handleApiError(error);
+    }
+  }
+
   async logout(): Promise<void> {
     try {
       await this.apiClient.post('/logout');
@@ -93,12 +102,16 @@ export class AuthService {
   private storeAuthData(authResult: any): void {
     if (typeof window !== 'undefined') {
       localStorage.setItem('userToken', authResult.token);
+      if (authResult.user) {
+        localStorage.setItem('userData', JSON.stringify(authResult.user));
+      }
     }
   }
 
   private clearAuthData(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('userToken');
+      localStorage.removeItem('userData');
     }
   }
 
