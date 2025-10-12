@@ -31,6 +31,11 @@ export class MediaService {
     const response = await this.apiClient.post(`/media-watched/${mediaId}/${userId}`);
     return response.data;
   }
+
+  async submitQuizResult(data: { is_correct: boolean; media_id: string }): Promise<any> {
+    const response = await this.apiClient.post('/quiz/result', data);
+    return response.data;
+  }
 }
 
 export const mediaService = new MediaService();

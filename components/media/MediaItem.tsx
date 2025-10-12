@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Eye, Info, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, Info, Check, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 import VideoPlayer from './VideoPlayer';
 import MediaInfo from './MediaInfo';
 import { Media } from '../../types/media';
@@ -16,6 +16,9 @@ interface MediaItemProps {
   onNext?: () => void;
   canGoPrevious?: boolean;
   canGoNext?: boolean;
+  isLoadingMore?: boolean;
+  isAtEnd?: boolean;
+  hasMore?: boolean;
 }
 
 export default function MediaItem({ 
@@ -26,7 +29,10 @@ export default function MediaItem({
   onPrevious, 
   onNext, 
   canGoPrevious = false, 
-  canGoNext = false 
+  canGoNext = false,
+  isLoadingMore = false,
+  isAtEnd = false,
+  hasMore = false
 }: MediaItemProps) {
   const [showInfo, setShowInfo] = useState(false);
   const isVideo = media.media_type === 'video';
@@ -43,6 +49,9 @@ export default function MediaItem({
           onNext={onNext}
           canGoPrevious={canGoPrevious}
           canGoNext={canGoNext}
+          isLoadingMore={isLoadingMore}
+          isAtEnd={isAtEnd}
+          hasMore={hasMore}
         />
       ) : (
         <div className="relative w-full h-full max-w-full max-h-full">
@@ -83,6 +92,14 @@ export default function MediaItem({
                 >
                   <ChevronRight size={32} />
                 </button>
+              )}
+              
+              {!canGoNext && isAtEnd && hasMore && (
+                <div className="absolute right-8 bg-yellow-400 bg-opacity-80 rounded-full p-4 text-black shadow-lg z-10">
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                </div>
               )}
             </div>
           )}

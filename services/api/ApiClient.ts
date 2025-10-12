@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
-const BASE_URL = 'http://192.168.1.141:80/api/v1';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:80/api/v1';
 
 export class ApiClient {
   private client: AxiosInstance;
@@ -8,7 +8,7 @@ export class ApiClient {
   constructor() {
     this.client = axios.create({
       baseURL: BASE_URL,
-      timeout: 10000,
+      timeout: 300000, // 5 minutes for large uploads
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

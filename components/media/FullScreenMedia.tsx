@@ -7,6 +7,8 @@ import { Media } from '../../types/media';
 import { mediaService } from '../../services/media/MediaService';
 import WatchNotification from '../ui/WatchNotification';
 import { useAuth } from '../../context/AuthContext';
+import { useQuiz } from '../../context/QuizContext';
+import { useRouter } from 'next/navigation';
 
 interface FullScreenMediaProps {
   media: Media;
@@ -17,6 +19,8 @@ interface FullScreenMediaProps {
 
 export default function FullScreenMedia({ media, isOpen, onClose, onWatchComplete }: FullScreenMediaProps) {
   const { user } = useAuth();
+  const { setQuizData } = useQuiz();
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -26,6 +30,7 @@ export default function FullScreenMedia({ media, isOpen, onClose, onWatchComplet
   const [showWatchAnimation, setShowWatchAnimation] = useState(false);
   const [showWatchNotification, setShowWatchNotification] = useState(false);
   const [isFirstTimeWatched, setIsFirstTimeWatched] = useState(!media.has_watched);
+  const [isRecordingWatch, setIsRecordingWatch] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -90,7 +95,7 @@ export default function FullScreenMedia({ media, isOpen, onClose, onWatchComplet
     const handleLoadStart = () => {};
     const handleLoadedData = () => {};
     const handleCanPlay = () => {};
-    const handleError = (e) => {};
+    const handleError = (e: any) => {};
 
     video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('loadeddata', handleLoadedData);
@@ -146,14 +151,31 @@ export default function FullScreenMedia({ media, isOpen, onClose, onWatchComplet
   };
 
   const handleWatchComplete = async () => {
-    if (!media.has_watched && user?.id) {
-      try {
-        const response = await mediaService.markAsWatched(media.id, user.id);
-        setIsFirstTimeWatched(false);
-        onWatchComplete?.(media.id);
-      } catch (error) {
-        console.error('Failed to mark as watched:', error);
+    // Skip watch recording if user is viewing their own content
+    if (media.uploader_id === user?.id) {
+      return;
+    }
+    
+    // Prevent multiple rapid calls
+    if (isRecordingWatch || media.has_watched || !user?.id) {
+      return;
+    }
+    
+    setIsRecordingWatch(true);
+    
+    try {
+      const response = await mediaService.markAsWatched(media.id, user.id);
+      setIsFirstTimeWatched(false);
+      onWatchComplete?.(media.id);
+      
+      if (response.trigger_quiz && response.quiz_data) {
+        setQuizData(response.quiz_data);
+        router.push('/quiz-invite');
       }
+    } catch (error) {
+      console.error('Failed to mark as watched:', error);
+    } finally {
+      setIsRecordingWatch(false);
     }
   };
 
@@ -161,18 +183,18 @@ export default function FullScreenMedia({ media, isOpen, onClose, onWatchComplet
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
-      <div className="relative w-full h-full max-w-7xl mx-auto">
+      <div className="relative w-full h-full flex items-center justify-center">
         {media.media_type === 'video' ? (
           <div 
-            className="relative w-full h-full"
+            className="relative w-full h-full flex items-center justify-center"
             onMouseEnter={() => setShowControls(true)}
             onMouseLeave={() => setShowControls(false)}
           >
             <video
               ref={videoRef}
               src={media.url}
-              poster={media.thumbnail}
-              className="w-full h-full object-cover"
+              poster={media.thumbnail || undefined}
+              className="w-full h-full object-contain"
               muted={false}
               playsInline
               preload="metadata"
@@ -184,35 +206,10 @@ export default function FullScreenMedia({ media, isOpen, onClose, onWatchComplet
               }}
             />
 
-            {showControls && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <button
-                  onClick={togglePlay}
-                  className="bg-black bg-opacity-50 rounded-full p-4 text-white hover:bg-opacity-70 transition-all pointer-events-auto"
-                >
-                  {isPlaying ? <Pause size={32} /> : <Play size={32} />}
-                </button>
-              </div>
-            )}
-
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
-              <div className="flex items-center justify-center text-white text-sm mb-2">
-                <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
-              </div>
-              
-              <div 
-                className="w-full h-1 bg-gray-600 rounded-full cursor-pointer"
-                onClick={handleProgressClick}
-              >
-                <div 
-                  className="h-full bg-yellow-400 rounded-full transition-all"
-                  style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
+            {/* Controls disabled in full screen mode for cleaner experience */}
           </div>
         ) : (
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full flex items-center justify-center">
             <Image
               src={media.url}
               alt={media.description || 'Media'}
@@ -238,7 +235,7 @@ export default function FullScreenMedia({ media, isOpen, onClose, onWatchComplet
           isVisible={showWatchNotification}
           isFirstTime={isFirstTimeWatched}
           mediaType={media.media_type}
-          hasBeenWatched={media.has_watched}
+          hasBeenWatched={media.has_watched || false}
         />
       </div>
     </div>

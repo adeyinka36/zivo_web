@@ -3,7 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 import { ToastProvider } from "../context/ToastContext";
+import { QuizProvider } from "../context/QuizContext";
 import { QueryProvider } from "../components/providers/QueryProvider";
+import ResponsiveNavigation from "../components/navigation/ResponsiveNavigation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,9 +34,19 @@ export default function RootLayout({
       >
         <QueryProvider>
           <AuthProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
+            <QuizProvider>
+              <ToastProvider>
+                <div className="min-h-screen bg-black">
+                <ResponsiveNavigation />
+                <div className="flex">
+                  <div className="hidden lg:block lg:w-64"></div>
+                  <main className="flex-1">
+                    {children}
+                  </main>
+                </div>
+              </div>
+              </ToastProvider>
+            </QuizProvider>
           </AuthProvider>
         </QueryProvider>
       </body>
